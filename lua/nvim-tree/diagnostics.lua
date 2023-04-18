@@ -24,6 +24,27 @@ local function add_sign(linenr, severity)
   vim.fn.sign_place(0, GROUP, sign_name, buf, { lnum = linenr, priority = 2 })
 end
 
+local function set_node_highlight(linenr, severity)
+  local ns_id = vim.api.nvim_get_namespaces()["NvimTreeHighlights"]
+  local buf = view.get_bufnr()
+  local hl_group
+  if severity == severity_levels.Error then
+    hl_group = "DiagnosticError"
+  elseif severity == severity_levels.Warning then
+    hl_group = "DiagnosticWarn"
+  elseif severity == severity_levels.Information then
+    hl_group = "DiagnosticInfo"
+  elseif severity == severity_levels.Hint then
+    hl_group = "DiagnosticHint"
+  end
+
+  if hl_group == nil then
+    return
+  end
+
+  vim.api.nvim_buf_add_highlight(buf, ns_id, hl_group, linenr, 0, -1) -- Apply the highlight
+end
+
 local function from_nvim_lsp()
   local buffer_severity = {}
 
@@ -123,10 +144,12 @@ function M.update()
             log.line("diagnostics", " matched fold node '%s'", node.absolute_path)
             node.diag_status = severity
             add_sign(line, severity)
+            set_node_highlight(line - 1, severity)
           elseif nodepath == bufpath then
             log.line("diagnostics", " matched file node '%s'", node.absolute_path)
             node.diag_status = severity
             add_sign(line, severity)
+            set_node_highlight(line - 1, severity)
           end
         end
       end
